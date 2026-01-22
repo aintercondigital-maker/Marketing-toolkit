@@ -7,7 +7,7 @@ import { MarkdownView } from '../components/MarkdownView';
 interface Props { language: Language; }
 
 export const PitchScript: React.FC<Props> = ({ language }) => {
-  const [persona, setPersona] = useState('plant_manager');
+  const [persona, setPersona] = useState('decision_maker');
   const [dataPoint, setDataPoint] = useState('');
   const [result, setResult] = useState({ call: '', email: '' });
   const [loading, setLoading] = useState(false);
@@ -15,8 +15,31 @@ export const PitchScript: React.FC<Props> = ({ language }) => {
   const handleGenerate = async () => {
     if (loading) return;
     setLoading(true);
+
+    let personaContext = "";
+    switch (persona) {
+      case 'introducer':
+        personaContext = "The Introducer. Anxiety: 'Will this reflect poorly on my judgment?' Need: Trust, clear communication, recognition.";
+        break;
+      case 'evaluator':
+        personaContext = "The Evaluator. Anxiety: 'Will I miss a critical flaw? Can I defend this with data?' Need: Technical proof, detailed specs, evidence of reliability.";
+        break;
+      case 'decision_maker':
+        personaContext = "The Decision-Maker. Anxiety: 'Is this the best use of capital? Will it deliver value?' Need: Clear business case, ROI, long-term partnership.";
+        break;
+      case 'user':
+        personaContext = "The User. Anxiety: 'Will this make my job harder? How long to learn?' Need: Simplicity, training, minimal disruption.";
+        break;
+      case 'advocate':
+        personaContext = "The Advocate. Anxiety: 'Was my recommendation the right one?' Need: To see the project succeed and look good.";
+        break;
+      default:
+        personaContext = "The Decision-Maker. Focus on ROI.";
+    }
+
     const system = "You are a World-Class Sales Expert. Your task is to generate an Advantech Value Pitch using the 'Align-Assure-Advance' structure.";
-    const user = `Target Persona: ${persona} (Focus on ${persona === 'plant_manager' ? 'ROI & Efficiency' : 'Risk & Security'}).\nKey Data Point: ${dataPoint}.\n\nOutput Requirement:\n1. A 30-second spoken script.\n2. A follow-up cold email.\n\nSeparator: Use '---SPLIT---' to separate the Script from the Email.`;
+    const user = `Target Persona: ${personaContext}.\nKey Data Point: ${dataPoint}.\n\nOutput Requirement:\n1. A 30-second spoken script (Address their specific anxiety directly).\n2. A follow-up cold email (Focus on their specific need).\n\nSeparator: Use '---SPLIT---' to separate the Script from the Email.`;
+    
     try {
       const res = await getGeminiBasicTask(system, user, language);
       const parts = (res || '').split('---SPLIT---');
@@ -34,7 +57,7 @@ export const PitchScript: React.FC<Props> = ({ language }) => {
           <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm"><i className="fa-solid fa-stopwatch text-2xl"></i></div>
           <div>
             <h2 className="text-3xl font-black text-[#004E9A] uppercase tracking-tight">Golden 30s Pitch Builder</h2>
-            <p className="text-slate-500 font-medium">Craft the perfect elevator pitch & follow-up</p>
+            <p className="text-slate-500 font-medium">Craft the perfect elevator pitch based on Key Player Psychology</p>
           </div>
         </div>
 
@@ -42,9 +65,12 @@ export const PitchScript: React.FC<Props> = ({ language }) => {
           <div className="flex-1">
              <label className="block text-xs font-black text-purple-900 uppercase tracking-widest mb-2">Target Persona</label>
              <div className="relative">
-                <select value={persona} onChange={e => setPersona(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl bg-white font-bold text-slate-700 focus:ring-2 focus:ring-purple-500 appearance-none">
-                  <option value="plant_manager">Plant Manager (Focus: ROI & OEE)</option>
-                  <option value="it_manager">IT Manager (Focus: Security & Compliance)</option>
+                <select value={persona} onChange={e => setPersona(e.target.value)} className="w-full p-4 border border-slate-200 rounded-xl bg-white font-bold text-slate-700 focus:ring-2 focus:ring-purple-500 appearance-none text-sm">
+                  <option value="introducer">The Introducer (Focus: Trust & Judgment)</option>
+                  <option value="evaluator">The Evaluator (Focus: Tech Proof & Specs)</option>
+                  <option value="decision_maker">The Decision-Maker (Focus: ROI & Capital)</option>
+                  <option value="user">The User (Focus: Simplicity & Ease)</option>
+                  <option value="advocate">The Advocate (Focus: Success & Validation)</option>
                 </select>
                 <i className="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
              </div>
@@ -53,7 +79,7 @@ export const PitchScript: React.FC<Props> = ({ language }) => {
              <label className="block text-xs font-black text-purple-900 uppercase tracking-widest mb-2">Key Insight / Data Point</label>
              <input 
                 type="text" 
-                placeholder="e.g. 'Unplanned downtime costs $20k/hr' or 'Competitor had a breach'..." 
+                placeholder="e.g. 'Unplanned downtime costs $20k/hr' or 'New regulation compliance'..." 
                 value={dataPoint} 
                 onChange={e => setDataPoint(e.target.value)} 
                 className="w-full p-4 border border-slate-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-purple-500 outline-none" 

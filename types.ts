@@ -5,7 +5,7 @@ export interface KBEntry {
   content: string;
 }
 
-export type AppTab = 'dashboard' | 'strategy-consultant' | 'spec-translator' | 'tco-calculator' | 'pitch-script' | 'solution-burger' | 'secure-mod' | 'icon-factory' | 'smart-converter';
+export type AppTab = 'dashboard' | 'strategy-consultant' | 'spec-translator' | 'tco-calculator' | 'pitch-script' | 'solution-burger' | 'secure-mod' | 'smart-converter' | 'icon-factory';
 
 export type Language = 
   | 'English' 
@@ -31,13 +31,6 @@ export interface GroundingChunk {
     uri: string;
     title: string;
   };
-}
-
-export interface GeneratedSvg {
-  id: string;
-  content: string;
-  prompt: string;
-  timestamp: number;
 }
 
 export enum GenerationStatus {
@@ -69,6 +62,13 @@ export interface Slot {
 }
 
 export type LayoutRatio = '16:9' | '9:16' | '4:3';
+
+export interface GeneratedSvg {
+  id: string;
+  content: string;
+  prompt: string;
+  timestamp: number;
+}
 
 // Global declarations for CDN libraries
 declare global {

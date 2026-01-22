@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { analyzeDocumentLayout, removeTextFromImage } from '../services/geminiService';
 import { OCRBlock, Slot, LayoutRatio } from '../types';
 
@@ -7,7 +7,6 @@ declare const pdfjsLib: any;
 declare const PptxGenJS: any;
 declare const JSZip: any;
 
-// Simple Toast Component inline
 const Toast: React.FC<{ message: string; type: 'info' | 'error'; onClose: () => void }> = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 3000);
@@ -23,10 +22,7 @@ const Toast: React.FC<{ message: string; type: 'info' | 'error'; onClose: () => 
   );
 };
 
-import { useEffect } from 'react';
-
 export const SmartConverter: React.FC = () => {
-  // State Management
   const [pdfPages, setPdfPages] = useState<string[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]); 
   const [ratio, setRatio] = useState<LayoutRatio>('16:9');
@@ -34,7 +30,6 @@ export const SmartConverter: React.FC = () => {
   const [exportProgress, setExportProgress] = useState(0);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
-  // Merge Function States
   const [mergeTextFile, setMergeTextFile] = useState<File | null>(null);
   const [mergeBgFile, setMergeBgFile] = useState<File | null>(null);
   const [mergeLogs, setMergeLogs] = useState<string[]>([]);
@@ -52,30 +47,41 @@ export const SmartConverter: React.FC = () => {
 
   const addMergeLog = (msg: string) => setMergeLogs(prev => [...prev.slice(-20), `[${new Date().toLocaleTimeString()}] ${msg}`]);
 
-  // --- Step 1: Processing Logic ---
-  const handlePdfUpload = async (file: File) => {
-    if (file.type !== 'application/pdf') return showToast('Only PDF format supported', 'error');
-    showToast('Executing High-Res Layout Scan...');
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const pages: string[] = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 2.5 });
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-          pages.push(canvas.toDataURL('image/png'));
+  const handleFileUpload = async (file: File) => {
+    if (file.type === 'application/pdf') {
+      showToast('Executing High-Res PDF Layout Scan...');
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pages: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2.5 });
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            pages.push(canvas.toDataURL('image/png'));
+          }
         }
+        setPdfPages(pages);
+        showToast(`Successfully parsed ${pages.length} pages from PDF`);
+      } catch (err) {
+        showToast('PDF Parse Failed', 'error');
       }
-      setPdfPages(pages);
-      showToast(`Successfully parsed ${pages.length} pages`);
-    } catch (err) {
-      showToast('PDF Parse Failed', 'error');
+    } else if (file.type.startsWith('image/')) {
+      showToast('Processing Image Source...');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setPdfPages(prev => [...prev, dataUrl]);
+        showToast('Image added successfully');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      showToast('Unsupported format (PDF/JPG/PNG only)', 'error');
     }
   };
 
@@ -91,7 +97,7 @@ export const SmartConverter: React.FC = () => {
       const content = await zip.generateAsync({ type: "blob" });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(content);
-      a.download = `PDF_Pages_Images.zip`;
+      a.download = `Digitized_Assets_${Date.now()}.zip`;
       a.click();
       showToast('Image archive downloaded');
     } catch (err) {
@@ -114,7 +120,6 @@ export const SmartConverter: React.FC = () => {
       for (let i = 0; i < pdfPages.length; i++) {
         setExportProgress(Math.round(((i + 1) / pdfPages.length) * 100));
         const base64 = pdfPages[i].split(',')[1];
-        // Using analyzeDocumentLayout (previously called callAiOcr)
         const blocks = await analyzeDocumentLayout(base64);
         const slide = pptx.addSlide();
         slide.background = { fill: "FFFFFF" };
@@ -123,7 +128,6 @@ export const SmartConverter: React.FC = () => {
             blocks.forEach((block: any) => {
               if (!block.text || !block.box_2d) return;
               let [ymin, xmin, ymax, xmax] = block.box_2d;
-              // Handle 0-1 vs 0-1000 scale
               if (ymax <= 1 && xmax <= 1) {
                   ymin *= 1000; xmin *= 1000; ymax *= 1000; xmax *= 1000;
               }
@@ -165,7 +169,6 @@ export const SmartConverter: React.FC = () => {
     showToast(`Batch added ${pdfPages.length} tasks`);
   };
 
-  // --- Step 2: Processing Logic ---
   const addToSlot = (dataUrl: string) => {
     const base64 = dataUrl.split(',')[1];
     const newSlot: Slot = {
@@ -233,7 +236,6 @@ export const SmartConverter: React.FC = () => {
     pptx.writeFile({ fileName: `Background_Base.pptx` });
   };
 
-  // --- Step 3: Merge Logic ---
   const handleMerge = async () => {
     if (!mergeTextFile || !mergeBgFile) return;
     setIsMerging(true);
@@ -246,9 +248,7 @@ export const SmartConverter: React.FC = () => {
       await textZip.loadAsync(mergeTextFile);
       await bgZip.loadAsync(mergeBgFile);
 
-      // Sort files to match slides
       const getSlideFiles = (zip: any) => Object.keys(zip.files).filter(p => p.match(/ppt\/slides\/slide\d+\.xml/)).sort((a,b) => {
-          // extract numbers
           const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || "0");
           const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || "0");
           return numA - numB;
@@ -281,13 +281,10 @@ export const SmartConverter: React.FC = () => {
             
             Array.from(tTree.childNodes).forEach((node) => {
               try {
-                // @ts-ignore
-                const ln = node.localName || node.nodeName.split(':').pop();
+                const ln = (node as any).localName || node.nodeName.split(':').pop();
                 if (['sp', 'grpSp', 'graphicFrame', 'pic'].includes(ln)) {
                   const clone = bDoc.importNode(node, true);
-                  // Ensure unique IDs
                   const cNvPrs = (clone as any).getElementsByTagName ? (clone as any).getElementsByTagName("p:cNvPr") : [];
-                  // If not found with namespace prefix, try without
                   const cNvPrsAlt = (clone as any).getElementsByTagName ? (clone as any).getElementsByTagName("cNvPr") : [];
                   const pr = cNvPrs.length > 0 ? cNvPrs[0] : (cNvPrsAlt.length > 0 ? cNvPrsAlt[0] : null);
 
@@ -298,9 +295,7 @@ export const SmartConverter: React.FC = () => {
                   bTree.appendChild(clone);
                   successCount++;
                 }
-              } catch (nodeErr: any) {
-                // Ignore node error
-              }
+              } catch (nodeErr: any) {}
             });
 
             bgZip.file(bgSlides[i], serializer.serializeToString(bDoc));
@@ -336,7 +331,7 @@ export const SmartConverter: React.FC = () => {
         </div>
         <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter italic">AI Magic PPTX Station</h1>
         <p className="text-slate-500 font-bold max-w-2xl mx-auto text-sm md:text-lg">
-          Professional PDF Digitalization. Convert, Erase, and Restore.
+          Professional Document Digitalization. Supports PDF, JPG, and PNG.
         </p>
       </header>
 
@@ -348,7 +343,7 @@ export const SmartConverter: React.FC = () => {
             <div>
               <h2 className="text-2xl font-black text-slate-800">Layout Extraction</h2>
               <p className="text-sm text-slate-400 font-bold mt-1">
-                Convert PDF to images and extract text coordinates using Gemini 3.
+                Convert PDF/Images to editable text coordinates using Gemini 3.
               </p>
             </div>
           </div>
@@ -364,7 +359,7 @@ export const SmartConverter: React.FC = () => {
                 onClick={downloadAllImages} 
                 className="bg-white text-slate-600 px-4 py-2 rounded-xl text-xs font-black shadow-sm border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-2"
               >
-                <i className="fa-solid fa-download"></i> Images
+                <i className="fa-solid fa-download"></i> Zip Export
               </button>
               <select value={ratio} onChange={e => setRatio(e.target.value as any)} className="text-xs font-black text-indigo-600 bg-white px-4 py-2 rounded-xl border-none outline-none shadow-sm cursor-pointer">
                 <option value="16:9">16:9 Wide</option>
@@ -388,13 +383,19 @@ export const SmartConverter: React.FC = () => {
             onClick={() => fileInputRef.current?.click()} 
             className="group relative bg-white border-2 border-dashed border-slate-200 rounded-[48px] p-12 md:p-24 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/20 transition-all duration-500 overflow-hidden"
           >
-            <input type="file" ref={fileInputRef} className="hidden" accept="application/pdf" onChange={e => e.target.files?.[0] && handlePdfUpload(e.target.files[0])} />
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="application/pdf,image/jpeg,image/png" 
+                onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} 
+            />
             <div className="relative z-10">
               <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[28px] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
                 <i className="fa-solid fa-file-pdf text-3xl"></i>
               </div>
-              <p className="text-2xl font-black text-slate-800">Upload PDF to Analyze</p>
-              <p className="text-slate-400 font-bold mt-2">Supports multi-page batch processing</p>
+              <p className="text-2xl font-black text-slate-800">Upload PDF or Image</p>
+              <p className="text-slate-400 font-bold mt-2">Supports PDF, JPG, PNG for batch processing</p>
             </div>
           </div>
         ) : (
@@ -406,12 +407,20 @@ export const SmartConverter: React.FC = () => {
                 </div>
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all rounded-3xl flex items-center justify-center p-4">
                   <button onClick={() => addToSlot(url)} className="bg-white text-slate-900 w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition">
-                    Add to Slot
+                    Add to Eraser
                   </button>
                 </div>
                 <div className="mt-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Page {i+1}</div>
               </div>
             ))}
+            {/* Quick Add Button */}
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="aspect-[3/4] rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 hover:border-indigo-300 hover:text-indigo-400 cursor-pointer transition-all"
+            >
+              <i className="fa-solid fa-plus text-2xl"></i>
+              <span className="text-[10px] font-black uppercase tracking-widest">Add More</span>
+            </div>
           </div>
         )}
       </section>
@@ -424,7 +433,7 @@ export const SmartConverter: React.FC = () => {
             <div>
               <h2 className="text-2xl font-black text-slate-800">AI Magic Eraser</h2>
               <p className="text-sm text-slate-400 font-bold mt-1">
-                Use Gemini 2.5 Flash Image to remove text and restore backgrounds.
+                Restore background templates by removing original text.
               </p>
             </div>
           </div>
@@ -454,7 +463,7 @@ export const SmartConverter: React.FC = () => {
               <i className="fa-solid fa-eraser text-6xl"></i>
             </div>
             <p className="text-slate-300 font-black text-xl italic uppercase tracking-widest">Workbench Empty</p>
-            <p className="text-slate-300 font-bold text-sm mt-2 uppercase tracking-tighter">Use Step 01 to add pages</p>
+            <p className="text-slate-300 font-bold text-sm mt-2 uppercase tracking-tighter">Use Step 01 to add documents</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -483,11 +492,6 @@ export const SmartConverter: React.FC = () => {
                   {slot.status === 'done' && (
                     <div className="absolute top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-[9px] font-black shadow-lg animate-bounce">Done</div>
                   )}
-                  {slot.status === 'error' && (
-                    <div className="absolute inset-0 bg-red-50/90 flex items-center justify-center p-4 text-center">
-                      <span className="text-[10px] font-black text-red-600 uppercase">Failed</span>
-                    </div>
-                  )}
                 </div>
 
                 <button 
@@ -511,7 +515,7 @@ export const SmartConverter: React.FC = () => {
             <div>
               <h2 className="text-2xl font-black text-slate-800">Final Restoration (Merge)</h2>
               <p className="text-sm text-slate-400 font-bold mt-1">
-                Merge the "Text Layer" and "Background Layer" PPTX files into one editable file.
+                Merge Text and Background layers into one editable PPTX.
               </p>
             </div>
           </div>
@@ -520,7 +524,6 @@ export const SmartConverter: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-7 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Text Layer Upload */}
               <div 
                 onClick={() => textMergeInputRef.current?.click()}
                 className={`group relative p-8 border-2 border-dashed rounded-[36px] text-center cursor-pointer transition-all ${mergeTextFile ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200 hover:border-indigo-400 bg-white'}`}
@@ -535,7 +538,6 @@ export const SmartConverter: React.FC = () => {
                 </p>
               </div>
 
-              {/* BG Layer Upload */}
               <div 
                 onClick={() => bgMergeInputRef.current?.click()}
                 className={`group relative p-8 border-2 border-dashed rounded-[36px] text-center cursor-pointer transition-all ${mergeBgFile ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200 hover:border-indigo-400 bg-white'}`}
@@ -573,9 +575,6 @@ export const SmartConverter: React.FC = () => {
           <div className="lg:col-span-5 bg-slate-900 rounded-[36px] p-8 shadow-inner ring-1 ring-slate-800 h-80 lg:h-auto flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Merge Master Terminal</span>
-              <div className="flex gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse"></span>
-              </div>
             </div>
             <div className="flex-grow overflow-y-auto font-mono text-[10px] space-y-2 custom-scrollbar pr-2">
               {mergeLogs.length === 0 && <p className="text-slate-700 italic">Ready to merge...</p>}

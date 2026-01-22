@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { MARKETING_ASSISTANT_PROMPT } from "../constants";
+import { MARKETING_ASSISTANT_PROMPT, INITIAL_KB } from "../constants";
 import { Language } from "../types";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -45,72 +45,37 @@ Always prioritize Advantech's internal data. If you use external search, explici
 export const generateKeywordSuggestions = async (product: string, specs: string, language: Language) => {
   const ai = getAI();
   const systemInstruction = `
-你是一位專精於 B2B 工業製造與 IoT 領域的 SEM 搜尋引擎行銷專家。你的任務是根據產品資訊與規格發想一組「高轉換率」的 Google Ads 關鍵字列表。
+You are a Senior SEM Expert specializing in B2B Industrial Manufacturing and IoT. Your task is to generate a high-conversion Google Ads keyword list based on product specifications.
 
-**思考邏輯 (Thinking Process):**
-1. **核心層 (Product Core):** 產品本名與類別。
-2. **屬性層 (Attributes/Specs):** 針對專業工程師搜尋的具體規格 (例如: "Isolated", "4kV", "DIN-rail", "ESD Level 4")。
-3. **場景/痛點層 (Scenarios/Pain Points):** 解決特定工業環境痛點的詞彙 (例如: "vibration proof", "wide temperature").
+**CRITICAL REQUIREMENT:**
+The entire response, including table headers, table content, and rationales, MUST be written in the following language: **${language}**.
 
-**過濾規則:** 嚴格排除 B2C/DIY 流量，僅保留商業、系統整合與工業採購意圖。
+**Thinking Process:**
+1. **Core Layer:** Product category and core name.
+2. **Attribute Layer:** Specific industrial specs (e.g., "Isolated", "DIN-rail", "ESD Protection").
+3. **Scenario Layer:** Pain-point driven keywords for industrial environments.
 
-**輸出格式要求 (CRITICAL OUTPUT RULES):**
-1. **必須以標準 Markdown 表格呈現** (Standard Markdown Table).
-2. 表格標題必須為：### 1. High-Conversion Keyword List
-3. 表格欄位必須包含：
-| 關鍵字 (Keyword) | 匹配模式 (Match Type) | 搜尋意圖 (Intent) | 潛在客群 (Audience) | 佈局邏輯 (Rationale) |
-4. **格式嚴格要求：**
-   - **每一列 (Row) 必須單獨佔據一行 (Each row must be on a new line).** 嚴禁將多列合併在同一行。
-   - **Rationale** 欄位必須詳細說明該詞如何區分 B2B 與 B2C，並對應產品特定價值。
-   - 禁止使用 JSON 或 Code Block。
-5. 表格下方提供「排除關鍵字 (Negative Keywords)」清單。
+**Output Rules:**
+1. Must use a standard Markdown table.
+2. The table must have these columns: Keyword, Match Type, Intent, Target Audience, Rationale.
+3. Rationale must explain why this keyword is professional B2B intent vs generic B2C.
+4. Provide a list of "Negative Keywords" below the table.
 `;
 
-  const userPrompt = `產品名稱: ${product}\n規格細節: ${specs}`;
+  const userPrompt = `Target Language: ${language}\nProduct: ${product}\nSpecs: ${specs}`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       config: {
-        systemInstruction: `${systemInstruction}\n\nLanguage: ${language}.`,
+        systemInstruction: systemInstruction,
         temperature: 0.3,
       }
     });
     return response.text;
   } catch (err) {
-    return "關鍵字建議生成失敗。";
-  }
-};
-
-export const generateSvgFromPrompt = async (prompt: string): Promise<string> => {
-  const ai = getAI();
-  const systemInstruction = `World-class industrial SVG designer. 
-Output ONLY raw <svg>...</svg> code for: ${prompt}.
-Rules:
-- Valid SVG only. No markdown, no text.
-- Viewbox: 0 0 24 24. 
-- Use "currentColor" for fills/strokes. 
-- Clean, modern, professional vector lines.`;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.1,
-      },
-    });
-    
-    let text = response.text || "";
-    const svgMatch = text.match(/<svg[\s\S]*?<\/svg>/i);
-    if (svgMatch) {
-      return svgMatch[0].trim();
-    }
-    return text.replace(/```svg/gi, "").replace(/```/gi, "").trim();
-  } catch (err: any) {
-    throw new Error(err.message || "Fast SVG generation failed");
+    return "Error generating keyword intelligence.";
   }
 };
 
@@ -163,6 +128,63 @@ export const getGeminiBasicTask = async (systemInstruction: string, userPrompt: 
   }
 };
 
+export const generateMotTable = async (product: string, target: string, pain: string, language: Language) => {
+  const ai = getAI();
+  
+  const kbContext = INITIAL_KB.map(k => `[Source: ${k.source}]\n${k.content}`).join('\n\n');
+
+  const systemInstruction = `
+# Task
+Please design a strategy planning table containing 10 B2B Moments of Truth (MOT) based on the provided framework.
+
+**STRICT LANGUAGE RULE:** Output the entire table and content in: **${language}**.
+
+# 1. Framework Constraints
+* **Strict Order (1-10):**
+    1. MOT 1: The Opening Gambit (Entrance)
+    2. MOT 2: Needs Discovery (Entrance)
+    3. MOT 3: The Product Demo (Conversion)
+    4. MOT 4: The Client-Specific Insight (Conversion)
+    5. MOT 5: The Moment of Crisis (Retention)
+    6. MOT 6: The Formal Proposal (Conversion)
+    7. MOT 7: The Final Delivery (Retention)
+    8. MOT 8: The Q&A Session (Conversion)
+    9. MOT 9: Success Stories (Referral)
+    10. MOT 10: The Company Introduction (Entrance)
+* **SECURE Mapping**: Map each MOT to one: Speed, Engineered Flexibility, Enhanced Customization, Uncertainty Reduction, Reliability, Cognitive Alignment.
+* **Value Keywords**: Bold these keywords in descriptions: Sustainable Growth, Long-term Value, Efficiency, Reduce Cost, Competitive Advantage, Agility.
+
+# 2. Output Format (Markdown Table)
+| Order | MOT Name | Stage | SECURE | Experience & Value Delivery |
+
+# 3. Internal Knowledge Base Context
+${kbContext}
+`;
+
+  const userPrompt = `
+  Context for Strategy:
+  - Product/Solution: ${product}
+  - Target Customer: ${target}
+  - Primary Pain Point: ${pain}
+  
+  Output Language: ${language}.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.7,
+      }
+    });
+    return response.text;
+  } catch (err: any) {
+    return `Error generating MOT table: ${err.message}`;
+  }
+};
+
 export type AdFormat = 'RSA' | 'PMax' | 'Display' | 'DemandGen';
 
 export const generateGoogleAds = async (
@@ -175,68 +197,15 @@ export const generateGoogleAds = async (
 ) => {
   const ai = getAI();
   
-  let formatConstraints = "";
-  if (format === 'RSA') {
-    formatConstraints = `
-    1. **Format:** Responsive Search Ads. 
-    2. **Headlines:** Quantity: 10. Length: MAX 30 visual units. Focus: Keywords & Direct Response.
-    3. **Descriptions:** Quantity: 4. Length: MAX 90 visual units.`;
-  } else if (format === 'PMax') {
-    formatConstraints = `
-    1. **Format:** Performance Max.
-    2. **Short Headlines:** Quantity: 5. Length: MAX 30 visual units.
-    3. **Long Headlines:** Quantity: 5. Length: MAX 90 visual units. *CRITICAL: Must be a stand-alone powerful slogan.*
-    4. **Descriptions:** Quantity: 4. Length: 1x 60 units, 3x 90 units.
-    5. **Focus:** Brand Authority & Broad Appeal across Search/Maps/YT.`;
-  } else if (format === 'Display') {
-    formatConstraints = `
-    1. **Format:** Responsive Display Ads.
-    2. **Short Headlines:** Quantity: 5. Length: MAX 30 units.
-    3. **Long Headlines:** Quantity: 1. Length: MAX 90 units. *MUST be stand-alone (self-sufficient).*
-    4. **Descriptions:** Quantity: 5. Length: MAX 90 units.
-    5. **Focus:** Interruptive marketing, visual-first assistance.`;
-  } else if (format === 'DemandGen') {
-    formatConstraints = `
-    1. **Format:** Demand Gen (YouTube/Gmail/Discover).
-    2. **Headlines:** Quantity: 5. Length: MAX 40 visual units (extended space for tone).
-    3. **Descriptions:** Quantity: 5. Length: MAX 90 units.
-    4. **Focus:** Storytelling, native-feel, soft sell, inspirational.`;
-  }
-
   const systemInstruction = `
-**Role:** Senior Google Ads Strategist for Advantech.
-**Goal:** Generate high-CTR Google Ads JSON for format: ${format}.
-
-**Visual Length Rule (STRICT):**
-- 1 Chinese/CJK character = 2 units.
-- 1 English letter/number/space = 1 unit.
-- **NEVER** exceed the unit limit for the selected format.
-
-**Content Strategy:**
-- Translate technical specs into "Scenarios" and "Pain Point Elimination".
-- No exclamation marks. No all-caps (except acronyms).
-- Keywords "${keywords}" must be naturally integrated into at least 4 headlines.
-
-**Format Specifics:**
-${formatConstraints}
-
+**Role:** Senior Google Ads Strategist.
+**Goal:** Generate JSON for ${format}. 
+**Language:** ${language}.
+1 Chinese/Japanese/Korean char = 2 units. 1 English char = 1 unit.
 **Output Format:** Pure JSON.
-{
-  "ad_group_idea": "string",
-  "headlines": [{ "text": "string", "length_check": "string (units/limit)" }],
-  "long_headlines": [{ "text": "string", "length_check": "string" }],
-  "descriptions": [{ "text": "string", "length_check": "string" }],
-  "marketing_rationale": "string"
-}
 `;
 
-  const userPrompt = `
-Product: ${product}
-Specs: ${specs}
-Value Prop: ${valueProp}
-Keywords: ${keywords}
-Language: ${language}
-`;
+  const userPrompt = `Product: ${product}\nSpecs: ${specs}\nValue Prop: ${valueProp}\nKeywords: ${keywords}\nLanguage: ${language}`;
 
   try {
     const response = await ai.models.generateContent({
@@ -255,23 +224,9 @@ Language: ${language}
   }
 };
 
-/**
- * Analyzes a document image to detect text layout for PPTX reconstruction.
- * Uses gemini-3-flash-preview for high-speed OCR.
- */
 export const analyzeDocumentLayout = async (base64Image: string) => {
   const ai = getAI();
-  const prompt = `Identify ALL text blocks in the image for PDF-to-PPT reconstruction.
-  
-  Return a JSON Array where each item has:
-  - "text": The exact string content.
-  - "box_2d": [ymin, xmin, ymax, xmax] coordinates (0-1000 scale).
-  - "font_size": Estimated font size (integer).
-  - "is_bold": boolean.
-  - "align": "left", "center", or "right".
-  - "color": Hex color string (e.g., "000000").
-  
-  Strict JSON output.`;
+  const prompt = `Identify ALL text blocks for PDF-to-PPT reconstruction. Return JSON Array with box_2d.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -301,25 +256,16 @@ export const analyzeDocumentLayout = async (base64Image: string) => {
         }
       }
     });
-    
-    if (response.text) {
-      return JSON.parse(response.text);
-    }
-    return [];
+    return response.text ? JSON.parse(response.text) : [];
   } catch (err) {
     console.error("Layout analysis failed", err);
     return [];
   }
 };
 
-/**
- * Removes text from an image using Gemini 2.5 Flash Image (Inpainting).
- * Used for creating a clean background for PPT slides.
- */
 export const removeTextFromImage = async (base64Image: string): Promise<string> => {
   const ai = getAI();
-  // Optimized prompt for "Background Cleaning"
-  const prompt = "Strictly remove ALL text, numbers, and watermarks from this document image. Preserve all diagrams, logos, photos, and background styling exactly as they are. Fill the gaps seamlessly to create a clean background template.";
+  const prompt = "Strictly remove ALL text from this document image. Fill the gaps seamlessly.";
   
   try {
     const response = await ai.models.generateContent({
@@ -331,20 +277,37 @@ export const removeTextFromImage = async (base64Image: string): Promise<string> 
         ]
       }
     });
-
     const parts = response.candidates?.[0]?.content?.parts;
     if (parts) {
       for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-          return part.inlineData.data;
-        }
+        if (part.inlineData) return part.inlineData.data;
       }
     }
-    throw new Error("No image generated.");
+    return base64Image;
   } catch (err: any) {
-    // If image generation fails, return original so the process doesn't crash, 
-    // but text will be duplicated.
-    console.error("Image cleaning failed, using original", err);
     return base64Image; 
+  }
+};
+
+export const generateSvgFromPrompt = async (prompt: string): Promise<string> => {
+  const ai = getAI();
+  const systemInstruction = `You are a world-class vector graphic artist specializing in industrial design. 
+  Generate a single, complete, valid SVG string based on the user prompt. 
+  The SVG should be clean, minimalist, and use a professional color palette (like Indigo or Advantech Blue). 
+  Ensure the SVG has a viewBox and is responsive. Return ONLY the raw SVG code without any markdown formatting.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.2,
+      },
+    });
+    return response.text?.replace(/```svg/g, '').replace(/```/g, '').trim() || "";
+  } catch (err: any) {
+    console.error("SVG generation failed", err);
+    throw new Error(`Failed to generate SVG: ${err.message}`);
   }
 };

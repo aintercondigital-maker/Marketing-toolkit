@@ -13,7 +13,6 @@ export const Dashboard: React.FC<Props> = ({ onNavigate, onOpenKB }) => {
     { id: 'tco-calculator' as AppTab, icon: 'fa-scale-unbalanced', title: 'TCO Calculator', desc: 'Quantify the cost of "Cheap" vs. Reliability.', color: 'green' },
     { id: 'pitch-script' as AppTab, icon: 'fa-stopwatch', title: 'Golden 30s', desc: 'Generate high-impact elevator pitches.', color: 'purple' },
     { id: 'solution-burger' as AppTab, icon: 'fa-layer-group', title: 'Solution Burger', desc: 'Stack Products into a Vertical Solution.', color: 'orange' },
-    { id: 'icon-factory' as AppTab, icon: 'fa-shapes', title: 'Icon Factory', desc: 'Generate Industrial SVG Assets.', color: 'indigo' },
     { id: 'smart-converter' as AppTab, icon: 'fa-file-powerpoint', title: 'Smart Converter', desc: 'Turn PDFs into Editable PPTX slides.', color: 'emerald' },
     { id: 'secure-mod' as AppTab, icon: 'fa-shield-halved', title: 'SECURE Framework', desc: 'Address objections with Reliability & Trust.', color: 'red' },
   ];

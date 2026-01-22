@@ -32,6 +32,7 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
 
   const resultRef = useRef<HTMLDivElement>(null);
   const adsRef = useRef<HTMLDivElement>(null);
+  const kwRef = useRef<HTMLDivElement>(null);
 
   const handleGenerate = async () => {
     if (!specs.trim() || loading) return;
@@ -51,8 +52,7 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
       const res = await getGeminiBasicTask(system, user, language);
       setResult(res || '');
       
-      // Auto-trigger Keywords after analysis
-      handleGetKeywords();
+      // Removed handleGetKeywords() from here to allow manual trigger
       
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (err: any) {
@@ -63,21 +63,21 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
   };
 
   const handleGetKeywords = async () => {
+    if (keywordLoading) return;
     setKeywordLoading(true);
+    kwRef.current?.scrollIntoView({ behavior: 'smooth' });
+    
     try {
       const report = await generateKeywordSuggestions(model, specs, language);
       setKeywordReport(report || '');
       
-      // Improved logic to parse standard Markdown tables
       const lines = report.split('\n');
       const kwList: string[] = [];
       lines.forEach(line => {
         const trimmed = line.trim();
-        // Check if it's a table row but not a header or separator
         if (trimmed.startsWith('|') && !trimmed.includes('---') && !trimmed.toLowerCase().includes('keyword') && !trimmed.toLowerCase().includes('關鍵字')) {
           const parts = trimmed.split('|');
           if (parts.length > 2) {
-            // The keyword is in the second element (index 1)
             const kw = parts[1].trim()
               .replace(/\*\*/g, '')
               .replace(/\[/g, '')
@@ -216,31 +216,43 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
 
             {/* Keyword Intelligence Section */}
             {!loading && result && (
-              <div className="bg-blue-50 p-8 md:p-12 border-t border-blue-100">
+              <div ref={kwRef} className="bg-blue-50 p-8 md:p-12 border-t border-blue-100">
                 <div className="max-w-6xl mx-auto">
-                  <div className="flex items-center gap-4 mb-8">
-                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                        <i className="fa-solid fa-magnifying-glass-chart"></i>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                     <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                           <i className="fa-solid fa-magnifying-glass-chart"></i>
+                        </div>
+                        <div>
+                           <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">SEM Keyword Intelligence</h4>
+                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Strategy: Core • Specs • Scenarios</p>
+                        </div>
                      </div>
-                     <div>
-                        <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">SEM Keyword Intelligence</h4>
-                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Strategy: Core • Specs • Scenarios</p>
-                     </div>
+
+                     {!keywordReport && !keywordLoading && (
+                       <button 
+                         onClick={handleGetKeywords}
+                         className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95"
+                       >
+                         <i className="fa-solid fa-wand-sparkles"></i>
+                         Generate Keyword Report
+                       </button>
+                     )}
                   </div>
 
                   {keywordLoading ? (
-                    <div className="py-12 flex items-center justify-center gap-3">
-                       <i className="fa-solid fa-compass animate-spin text-blue-600"></i>
-                       <span className="text-xs font-black uppercase tracking-widest text-slate-400">Mapping Intent Funnel...</span>
+                    <div className="py-20 flex flex-col items-center justify-center gap-4">
+                       <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+                       <span className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 animate-pulse">Mapping Search Intent...</span>
                     </div>
-                  ) : (
+                  ) : keywordReport ? (
                     <div className="space-y-6">
-                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-blue-100 prose prose-sm max-w-none overflow-x-auto">
+                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-blue-100 prose prose-sm max-w-none overflow-x-auto animate-fadeIn">
                           <MarkdownView content={keywordReport} />
                        </div>
                        
                        {suggestedKeywords.length > 0 && (
-                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100">
+                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 animate-fadeIn">
                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-4 text-center italic">
                              — Auto-Detected Keywords (Select to Build Ads) —
                            </span>
@@ -265,6 +277,11 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
                            </div>
                          </div>
                        )}
+                    </div>
+                  ) : (
+                    <div className="py-20 border-2 border-dashed border-blue-200 rounded-[2.5rem] flex flex-col items-center justify-center text-blue-300/60">
+                       <i className="fa-solid fa-lightbulb text-6xl mb-4 opacity-20"></i>
+                       <p className="font-black uppercase tracking-[0.2em] text-[10px]">Click the button above to start Keyword Discovery</p>
                     </div>
                   )}
                 </div>

@@ -9,7 +9,6 @@ import { TCOCalculator } from './features/TCOCalculator';
 import { PitchScript } from './features/PitchScript';
 import { SolutionBurger } from './features/SolutionBurger';
 import { SecureMod } from './features/SecureMod';
-import { IconFactory } from './features/IconFactory';
 import { SmartConverter } from './features/SmartConverter';
 
 const App: React.FC = () => {
@@ -59,7 +58,6 @@ const App: React.FC = () => {
           <NavItem tab="tco-calculator" icon="fa-scale-unbalanced" label="TCO" />
           <NavItem tab="pitch-script" icon="fa-stopwatch" label="Pitch" />
           <NavItem tab="solution-burger" icon="fa-layer-group" label="Burger" />
-          <NavItem tab="icon-factory" icon="fa-shapes" label="Icon" />
           <NavItem tab="smart-converter" icon="fa-file-powerpoint" label="Converter" />
         </nav>
 
@@ -96,7 +94,6 @@ const App: React.FC = () => {
         {activeTab === 'pitch-script' && <PitchScript language={language} />}
         {activeTab === 'solution-burger' && <SolutionBurger language={language} />}
         {activeTab === 'secure-mod' && <SecureMod language={language} />}
-        {activeTab === 'icon-factory' && <IconFactory />}
         {activeTab === 'smart-converter' && <SmartConverter />}
       </main>
     </div>
