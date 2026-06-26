@@ -5,7 +5,39 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advantech CP Marketing Toolkit</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            advantech: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#bae0fd',
+              300: '#7cc5fa',
+              400: '#36a7f6',
+              500: '#0c8ce9',
+              600: '#006ec8',
+              700: '#004E9A', // Primary Advantech Blue
+              800: '#054782',
+              900: '#0a3b6c',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
@@ -15,27 +47,30 @@
   </script>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 0;
       background-color: #F8FAFC;
       font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
     
-    /* Optimized Markdown Styles - 14px Arial Primary */
-    .prose { font-size: 14px !important; font-family: 'Arial', sans-serif !important; }
-    .prose h1 { font-size: 1.6rem; font-weight: 900; color: #004E9A; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: -0.01em; }
-    .prose h2 { font-size: 1.4rem; font-weight: 800; color: #004E9A; margin: 1.4rem 0 0.5rem; border-bottom: 2px solid #F1F5F9; padding-bottom: 0.4rem; }
-    .prose h3 { font-size: 1.15rem; font-weight: 700; color: #334155; margin: 1rem 0 0.4rem; }
+    /* Optimized Markdown Styles */
+    .prose { font-size: 14px !important; font-family: 'Inter', sans-serif !important; }
+    .prose h1 { font-size: 1.6rem; font-weight: 800; color: #004E9A; margin-bottom: 0.8rem; letter-spacing: -0.02em; }
+    .prose h2 { font-size: 1.3rem; font-weight: 700; color: #004E9A; margin: 1.4rem 0 0.5rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.4rem; letter-spacing: -0.01em; }
+    .prose h3 { font-size: 1.1rem; font-weight: 600; color: #1E293B; margin: 1rem 0 0.4rem; }
     .prose p, .prose li { margin-bottom: 0.8rem; line-height: 1.6; color: #475569; font-size: 14px !important; }
     .prose table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 1.2rem 0; font-size: 13px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; }
-    .prose th { background: #F1F5F9; text-align: left; padding: 10px 14px; font-weight: 800; color: #004E9A; border-bottom: 1px solid #E2E8F0; }
-    .prose td { padding: 10px 14px; border-bottom: 1px solid #F1F5F9; color: #64748B; background: white; font-size: 13px; }
+    .prose th { background: #F8FAFC; text-align: left; padding: 12px 16px; font-weight: 600; color: #004E9A; border-bottom: 1px solid #E2E8F0; }
+    .prose td { padding: 12px 16px; border-bottom: 1px solid #F1F5F9; color: #475569; background: white; font-size: 13px; }
     .prose tr:last-child td { border-bottom: none; }
-    .prose blockquote { border-left: 4px solid #F59E0B; background: #FFFBEB; padding: 0.8rem 1.2rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-style: italic; color: #92400E; font-size: 14px; }
+    .prose blockquote { border-left: 3px solid #004E9A; background: #F0F7FF; padding: 1rem 1.2rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-style: italic; color: #054782; font-size: 14px; }
+    .prose code { font-family: 'JetBrains Mono', monospace; background: #F1F5F9; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.85em; color: #0F172A; }
     
     /* Prose Invert */
     .prose-invert h1, .prose-invert h2 { color: #FFFFFF; border-bottom-color: rgba(255,255,255,0.1); }
@@ -44,7 +79,7 @@
     .prose-invert th { background: rgba(255,255,255,0.1); color: #FFFFFF; border-bottom-color: rgba(255,255,255,0.2); }
     .prose-invert td { background: rgba(0,0,0,0.1); color: #CBD5E1; border-bottom-color: rgba(255,255,255,0.05); }
     
-    .fact-check-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 4px solid #10B981; border-radius: 12px; transition: all 0.2s; font-size: 14px; }
+    .fact-check-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 4px solid #10B981; border-radius: 12px; transition: all 0.2s; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
   </style>
 <script type="importmap">
 {
@@ -59,8 +94,10 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

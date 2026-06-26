@@ -5,7 +5,7 @@ export interface KBEntry {
   content: string;
 }
 
-export type AppTab = 'dashboard' | 'strategy-consultant' | 'spec-translator' | 'tco-calculator' | 'pitch-script' | 'solution-burger' | 'secure-mod' | 'smart-converter' | 'icon-factory';
+export type AppTab = 'dashboard' | 'strategy-consultant' | 'spec-translator' | 'tco-calculator' | 'pitch-script' | 'solution-burger' | 'secure-mod' | 'smart-converter' | 'icon-factory' | 'roi-calculator' | 'vector-db';
 
 export type Language = 
   | 'English' 
@@ -76,5 +76,6 @@ declare global {
     pdfjsLib: any;
     PptxGenJS: any;
     JSZip: any;
+    aistudio: any;
   }
 }

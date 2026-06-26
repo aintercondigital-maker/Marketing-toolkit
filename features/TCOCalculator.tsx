@@ -1,12 +1,21 @@
 
 import React, { useState } from 'react';
+import { Language } from '../types';
+import { getGeminiBasicTask } from '../services/geminiService';
+import { MarkdownView } from '../components/MarkdownView';
 
-export const TCOCalculator: React.FC = () => {
+interface Props {
+  language: Language;
+}
+
+export const TCOCalculator: React.FC<Props> = ({ language }) => {
   const [downtimeCostStr, setDowntimeCostStr] = useState('5000');
   const [failureHoursStr, setFailureHoursStr] = useState('20');
   const [revalCostStr, setRevalCostStr] = useState('50000');
   const [priceDiffStr, setPriceDiffStr] = useState('8000');
   const [showResults, setShowResults] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const downtimeCost = parseFloat(downtimeCostStr) || 0;
   const failureHours = parseFloat(failureHoursStr) || 0;
@@ -15,6 +24,29 @@ export const TCOCalculator: React.FC = () => {
 
   const loss = (downtimeCost * failureHours) + (revalCost / 3);
   const gain = loss - priceDiff;
+
+  const handleAiAnalysis = async () => {
+    setLoading(true);
+    const system = "You are a Senior Advantech Value Consultant. Analyze the TCO (Total Cost of Ownership) calculation results and provide a compelling, professional B2B executive summary justifying the investment in Advantech hardware.";
+    const user = `TCO Data:
+    - Downtime Cost: $${downtimeCost}/hr
+    - Annual Failure Risk: ${failureHours} hours
+    - Re-validation Cost: $${revalCost}
+    - Advantech Price Premium: $${priceDiff}
+    - Competitor's Annual Risk Cost: $${Math.round(loss)}
+    - Advantech Value Net Gain: $${Math.round(gain)}
+    
+    Provide a concise, persuasive 3-paragraph summary emphasizing long-term value, risk mitigation, and ROI.`;
+    
+    try {
+      const res = await getGeminiBasicTask(system, user, language);
+      setAiAnalysis(res || 'No analysis generated.');
+    } catch (e) {
+      setAiAnalysis('Error generating AI analysis.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-12 animate-fadeIn">
@@ -97,6 +129,25 @@ export const TCOCalculator: React.FC = () => {
                         By choosing Advantech, you secure a first-year net value gain of <strong className="text-white">${Math.round(gain).toLocaleString()}</strong> by avoiding ${Math.round(loss).toLocaleString()} in downtime & risks.
                         <div className="mt-4 text-right font-black text-white uppercase text-xs tracking-widest">- Value Consultant</div>
                     </div>
+
+                    <button 
+                      onClick={handleAiAnalysis}
+                      disabled={loading}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg transition-all transform hover:-translate-y-1 text-sm tracking-widest uppercase flex items-center justify-center gap-2 mt-6"
+                    >
+                      {loading ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-wand-magic-sparkles"></i>} Generate AI Executive Summary
+                    </button>
+
+                    {aiAnalysis && (
+                      <div className="bg-blue-50 p-8 rounded-[2rem] border border-blue-200 mt-6 animate-fadeIn">
+                        <div className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <i className="fa-solid fa-robot"></i> AI Executive Summary
+                        </div>
+                        <div className="text-sm text-slate-800 leading-relaxed">
+                          <MarkdownView content={aiAnalysis} />
+                        </div>
+                      </div>
+                    )}
                 </div>
              ) : (
                 <div className="h-full flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-[3rem]">

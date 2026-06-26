@@ -46,7 +46,7 @@ export const IconFactory: React.FC = () => {
   const copyToClipboard = () => {
     if (currentSvg) {
       navigator.clipboard.writeText(currentSvg.content);
-      alert("SVG Code copied to clipboard!");
+      // Removed alert
     }
   };
 

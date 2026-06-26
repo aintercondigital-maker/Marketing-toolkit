@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeDocumentLayout, removeTextFromImage } from '../services/geminiService';
-import { OCRBlock, Slot, LayoutRatio } from '../types';
+import { OCRBlock, Slot, LayoutRatio, Language } from '../types';
 
 declare const pdfjsLib: any;
 declare const PptxGenJS: any;
@@ -22,7 +22,11 @@ const Toast: React.FC<{ message: string; type: 'info' | 'error'; onClose: () => 
   );
 };
 
-export const SmartConverter: React.FC = () => {
+interface Props {
+  language: Language;
+}
+
+export const SmartConverter: React.FC<Props> = ({ language }) => {
   const [pdfPages, setPdfPages] = useState<string[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]); 
   const [ratio, setRatio] = useState<LayoutRatio>('16:9');
@@ -120,7 +124,7 @@ export const SmartConverter: React.FC = () => {
       for (let i = 0; i < pdfPages.length; i++) {
         setExportProgress(Math.round(((i + 1) / pdfPages.length) * 100));
         const base64 = pdfPages[i].split(',')[1];
-        const blocks = await analyzeDocumentLayout(base64);
+        const blocks = await analyzeDocumentLayout(base64, language);
         const slide = pptx.addSlide();
         slide.background = { fill: "FFFFFF" };
 

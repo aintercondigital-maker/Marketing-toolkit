@@ -29,6 +29,7 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
   const [adsLoading, setAdsLoading] = useState(false);
   const [keywords, setKeywords] = useState('');
   const [adFormat, setAdFormat] = useState<AdFormat>('RSA');
+  const [adsError, setAdsError] = useState<string | null>(null);
 
   const resultRef = useRef<HTMLDivElement>(null);
   const adsRef = useRef<HTMLDivElement>(null);
@@ -38,6 +39,7 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
     if (!specs.trim() || loading) return;
     setLoading(true);
     setAdsData(null);
+    setAdsError(null);
     setKeywordReport('');
     setSuggestedKeywords([]);
     
@@ -51,9 +53,6 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
     try {
       const res = await getGeminiBasicTask(system, user, language);
       setResult(res || '');
-      
-      // Removed handleGetKeywords() from here to allow manual trigger
-      
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (err: any) {
       setResult(`Error: ${err.message}`);
@@ -102,14 +101,17 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
   const handleGenerateAds = async () => {
     if (!result || adsLoading) return;
     setAdsLoading(true);
+    setAdsError(null);
     try {
       const jsonStr = await generateGoogleAds(model, specs, result, keywords, adFormat, language);
       if (jsonStr) {
-        setAdsData(JSON.parse(jsonStr));
+        const parsed = JSON.parse(jsonStr.trim());
+        setAdsData(parsed);
         setTimeout(() => adsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Ads generation failed", error);
+      setAdsError(error.message || "Failed to generate valid ad copy. Please try again.");
     } finally {
       setAdsLoading(false);
     }
@@ -142,7 +144,7 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Feed the AI with Technical Data</p>
              </div>
            </div>
-           <button onClick={() => {setModel(''); setSpecs(''); setResult(''); setAdsData(null); setKeywordReport('');}} className="text-slate-400 hover:text-red-500 transition-colors">
+           <button onClick={() => {setModel(''); setSpecs(''); setResult(''); setAdsData(null); setKeywordReport(''); setAdsError(null);}} className="text-slate-400 hover:text-red-500 transition-colors">
               <i className="fa-solid fa-rotate-left"></i>
            </button>
         </div>
@@ -332,6 +334,13 @@ export const SpecTranslator: React.FC<Props> = ({ language }) => {
                         {adsLoading ? <i className="fa-solid fa-sync animate-spin"></i> : <i className="fa-solid fa-bullhorn"></i>} Build Ads
                       </button>
                    </div>
+
+                   {adsError && (
+                     <div className="mb-8 p-6 bg-red-900/20 border border-red-500/50 rounded-2xl text-red-200 text-sm font-bold flex items-center gap-3">
+                       <i className="fa-solid fa-circle-exclamation text-xl"></i>
+                       {adsError}
+                     </div>
+                   )}
 
                    {adsData && (
                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn" style={{ fontSize: '14px' }}>
