@@ -1,4 +1,4 @@
-# Advantech CP Marketing Toolkit (研華科技 B2B 智慧行銷工具箱)
+# Advantech CP Marketing Toolkit 
 
 [English Version Below](#english-version)
 
