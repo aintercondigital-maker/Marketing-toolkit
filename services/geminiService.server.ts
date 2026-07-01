@@ -6,7 +6,10 @@ import "dotenv/config";
 
 // Setup OpenAI client for NVIDIA NIM
 const getOpenAI = () => {
-  const apiKey = process.env.NVIDIA_API_KEY || "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";
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) {
+    throw new Error("NVIDIA_API_KEY environment variable is not set.");
+  }
   return new OpenAI({
     apiKey: apiKey,
     baseURL: "https://integrate.api.nvidia.com/v1"
